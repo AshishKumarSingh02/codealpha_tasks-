@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Sheet — Photo Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #121212;
+    --bg-raised: #1a1a1a;
+    --paper: #f2efea;
+    --amber: #e8a33d;
+    --teal: #3f5d5b;
+    --red: #b3452f;
+    --line: rgba(242,239,234,0.14);
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--paper);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    padding: 56px 6vw 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 12px;
+  }
+  h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-style: italic;
+    font-size: clamp(32px, 5vw, 56px);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  header p.sub{
+    font-size: 14px;
+    color: rgba(242,239,234,0.6);
+    max-width: 46ch;
+    margin: 0;
+  }
+
+  /* ---------- Sprocket strip (signature element) ---------- */
+  .sprockets{
+    display:flex;
+    gap: 10px;
+    padding: 10px 6vw;
+    background: #0c0c0c;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .sprockets span{
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: rgba(242,239,234,0.16);
+    flex: none;
+  }
+
+  /* ---------- Filters ---------- */
+  .filters{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 24px 6vw 8px;
+  }
+  .filter-btn{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: transparent;
+    color: rgba(242,239,234,0.65);
+    border: 1px solid var(--line);
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .filter-btn:hover{
+    color: var(--paper);
+    border-color: var(--amber);
+  }
+  .filter-btn.active{
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #12100a;
+    font-weight: 600;
+  }
+
+  /* ---------- Gallery grid ---------- */
+  .gallery{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 18px;
+    padding: 24px 6vw 72px;
+  }
+  .frame{
+    position: relative;
+    aspect-ratio: 4/5;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-raised);
+    cursor: pointer;
+    transition: transform 0.35s cubic-bezier(.2,.8,.2,1), box-shadow 0.35s ease;
+  }
+  .frame:hover{
+    transform: translateY(-6px);
+    box-shadow: 0 18px 34px rgba(0,0,0,0.45);
+  }
+  .frame img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display:block;
+    filter: saturate(0.92) contrast(1.02);
+    transition: transform 0.6s cubic-bezier(.2,.8,.2,1), filter 0.4s ease;
+  }
+  .frame:hover img{
+    transform: scale(1.08);
+    filter: saturate(1.05) contrast(1.05);
+  }
+  .frame.hidden{ display:none; }
+
+  .frame-meta{
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 14px 14px 12px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85) 70%);
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .frame:hover .frame-meta{
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .frame-meta .title{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+  }
+  .frame-meta .idx{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--amber);
+  }
+
+  /* ---------- Lightbox ---------- */
+  .lightbox{
+    position: fixed;
+    inset: 0;
+    background: rgba(8,8,8,0.96);
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+  }
+  .lightbox.open{ opacity:1; visibility: visible; }
+
+  .lb-stage{
+    position: relative;
+    max-width: 88vw;
+    max-height: 82vh;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .lb-stage img{
+    max-width: 88vw;
+    max-height: 68vh;
+    border-radius: 4px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+    opacity: 0;
+    transform: scale(0.97);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .lb-stage img.show{ opacity: 1; transform: scale(1); }
+
+  .lb-caption{
+    text-align:center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(242,239,234,0.7);
+    letter-spacing: 0.04em;
+  }
+  .lb-caption .cap-title{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 20px;
+    color: var(--paper);
+    display:block;
+    margin-bottom: 4px;
+  }
+
+  .lb-close, .lb-nav{
+    position: absolute;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--paper);
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: all 0.2s ease;
+  }
+  .lb-close{
+    top: -48px;
+    right: 0;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    font-size: 16px;
+  }
+  .lb-close:hover{ background: var(--red); border-color: var(--red); }
+
+  .lb-nav{
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    font-size: 18px;
+  }
+  .lb-nav:hover{ background: var(--amber); border-color: var(--amber); color:#12100a; }
+  .lb-prev{ left: -60px; }
+  .lb-next{ right: -60px; }
+
+  @media (max-width: 720px){
+    .lb-prev{ left: 8px; }
+    .lb-next{ right: 8px; }
+    .lb-close{ top: 8px; right: 8px; background: rgba(0,0,0,0.5); }
+    .lb-nav{ top: auto; bottom: -56px; transform:none; background: rgba(0,0,0,0.5); }
+    .lb-prev{ bottom: -56px; left: 40%; }
+    .lb-next{ bottom: -56px; right: 40%; }
+  }
+
+  footer{
+    padding: 20px 6vw 40px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(242,239,234,0.4);
+    text-align:center;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Roll 04 — Developed 2026</p>
+  <h1>Contact Sheet</h1>
+  <p class="sub">A small archive of frames, sorted by subject. Click any frame to view it full size.</p>
+</header>
+
+<div class="sprockets" id="sprockets"></div>
+
+<div class="filters" id="filters"></div>
+
+<section class="gallery" id="gallery"></section>
+
+<div class="lightbox" id="lightbox">
+  <div class="lb-stage">
+    <button class="lb-close" id="lbClose">✕</button>
+    <button class="lb-nav lb-prev" id="lbPrev">←</button>
+    <img id="lbImg" src="" alt="">
+    <button class="lb-nav lb-next" id="lbNext">→</button>
+    <div class="lb-caption">
+      <span class="cap-title" id="lbTitle"></span>
+      <span id="lbIndex"></span>
+    </div>
+  </div>
+</div>
+
+<footer>Frame counter resets each roll · use ← → keys or swipe to navigate · esc to close</footer>
+
+<script>
+  const photos = [
+    { id: 1015, title: "River Bend",        category: "nature" },
+    { id: 1018, title: "Mountain Light",     category: "nature" },
+    { id: 1039, title: "Pine Ridge",         category: "nature" },
+    { id: 1043, title: "Coastal Path",       category: "nature" },
+    { id: 1062, title: "Glass Facade",       category: "architecture" },
+    { id: 1076, title: "Concrete Lines",     category: "architecture" },
+    { id: 1071, title: "Stairwell Study",    category: "architecture" },
+    { id: 164,  title: "Old Quarter",        category: "architecture" },
+    { id: 1005, title: "Quiet Gaze",         category: "portrait" },
+    { id: 1027, title: "Afternoon Light",    category: "portrait" },
+    { id: 338,  title: "Half Turn",          category: "portrait" },
+    { id: 91,   title: "Steady Hands",       category: "portrait" },
+    { id: 1024, title: "Crosswalk",          category: "street" },
+    { id: 1031, title: "Rain, Late",         category: "street" },
+    { id: 1040, title: "Market Corner",      category: "street" },
+    { id: 1050, title: "Neon Alley",         category: "street" }
+  ];
+
+  const categories = ["all", ...new Set(photos.map(p => p.category))];
+
+  const filtersEl = document.getElementById('filters');
+  const galleryEl = document.getElementById('gallery');
+  const sprocketsEl = document.getElementById('sprockets');
+
+  // decorative sprocket holes, responsive count
+  for (let i = 0; i < 60; i++){
+    const s = document.createElement('span');
+    sprocketsEl.appendChild(s);
+  }
+
+  // build filter buttons
+  categories.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (cat === 'all' ? ' active' : '');
+    btn.textContent = cat;
+    btn.dataset.cat = cat;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilter(cat);
+    });
+    filtersEl.appendChild(btn);
+  });
+
+  function imgUrl(id, w, h){
+    return `https://picsum.photos/id/${id}/${w}/${h}`;
+  }
+
+  // build gallery frames
+  photos.forEach((p, i) => {
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    frame.dataset.cat = p.category;
+    frame.dataset.index = i;
+    frame.innerHTML = `
+      <img src="${imgUrl(p.id, 500, 625)}" alt="${p.title}" loading="lazy">
+      <div class="frame-meta">
+        <span class="title">${p.title}</span>
+        <span class="idx">${String(i+1).padStart(2,'0')}/${String(photos.length).padStart(2,'0')}</span>
+      </div>
+    `;
+    frame.addEventListener('click', () => openLightbox(i));
+    galleryEl.appendChild(frame);
+  });
+
+  function applyFilter(cat){
+    document.querySelectorAll('.frame').forEach(f => {
+      f.classList.toggle('hidden', cat !== 'all' && f.dataset.cat !== cat);
+    });
+  }
+
+  // ---------- Lightbox logic ----------
+  const lightbox = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lbImg');
+  const lbTitle = document.getElementById('lbTitle');
+  const lbIndex = document.getElementById('lbIndex');
+  let currentIndex = 0;
+
+  function visiblePhotos(){
+    const activeCat = document.querySelector('.filter-btn.active').dataset.cat;
+    return photos
+      .map((p, i) => ({...p, i}))
+      .filter(p => activeCat === 'all' || p.category === activeCat);
+  }
+
+  function openLightbox(index){
+    currentIndex = index;
+    renderLightbox();
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function renderLightbox(){
+    const p = photos[currentIndex];
+    lbImg.classList.remove('show');
+    const next = new Image();
+    next.onload = () => {
+      lbImg.src = next.src;
+      requestAnimationFrame(() => lbImg.classList.add('show'));
+    };
+    next.src = imgUrl(p.id, 1200, 900);
+    lbTitle.textContent = p.title;
+    lbIndex.textContent = `FRAME ${String(currentIndex+1).padStart(2,'0')} / ${String(photos.length).padStart(2,'0')} — ${p.category.toUpperCase()}`;
+  }
+
+  function closeLightbox(){
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function step(dir){
+    currentIndex = (currentIndex + dir + photos.length) % photos.length;
+    renderLightbox();
+  }
+
+  document.getElementById('lbClose').addEventListener('click', closeLightbox);
+  document.getElementById('lbNext').addEventListener('click', () => step(1));
+  document.getElementById('lbPrev').addEventListener('click', () => step(-1));
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+
+  document.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') step(1);
+    if (e.key === 'ArrowLeft') step(-1);
+  });
+
+  // basic touch swipe
+  let touchStartX = 0;
+  lightbox.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+  lightbox.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
